@@ -1,0 +1,219 @@
+Hibernate:
+    alter table role_permission
+       drop
+       foreign key FKky736fypjdg9w2fj1xv4m7yd1
+Hibernate:
+    alter table role_permission
+       drop
+       foreign key FKgu0wxwfjwk4n3n3dopx2auciy
+Hibernate:
+    alter table user_group
+       drop
+       foreign key FKigraic5s1w8kvvvppwltekao2
+Hibernate:
+    alter table user_group
+       drop
+       foreign key FKyiga1urvcdvpting421gc28m
+Hibernate:
+    alter table user_role
+       drop
+       foreign key FK66rggwh2ht8u9ig7hvam1jvai
+Hibernate:
+    alter table user_role
+       drop
+       foreign key FK79ltvrbu1ni2ad7w7i9vers1k
+Hibernate:
+    alter table user_task
+       drop
+       foreign key FK4xtx76k1al69nhud5m5ha0y4u
+Hibernate:
+    alter table user_task
+       drop
+       foreign key FKhxb4bpnad6jgqgki78208wpt5
+Hibernate:
+    drop table if exists group_entity
+Hibernate:
+    drop table if exists group_entity_seq
+Hibernate:
+    drop table if exists permission_entity
+Hibernate:
+    drop table if exists permission_entity_seq
+Hibernate:
+    drop table if exists role_entity
+Hibernate:
+    drop table if exists role_entity_seq
+Hibernate:
+    drop table if exists role_permission
+Hibernate:
+    drop table if exists task_entity
+Hibernate:
+    drop table if exists task_entity_seq
+Hibernate:
+    drop table if exists user_entity
+Hibernate:
+    drop table if exists user_entity_seq
+Hibernate:
+    drop table if exists user_group
+Hibernate:
+    drop table if exists user_role
+Hibernate:
+    drop table if exists user_task
+Hibernate:
+    create table group_entity (
+        is_active bit not null,
+        id bigint not null,
+        description TEXT,
+        name varchar(255) not null,
+        primary key (id)
+    ) engine=InnoDB
+Hibernate:
+    create table group_entity_seq (
+        next_val bigint
+    ) engine=InnoDB
+Hibernate:
+    insert into group_entity_seq values ( 1 )
+Hibernate:
+    create table permission_entity (
+        is_active bit not null,
+        id bigint not null,
+        description TEXT,
+        name varchar(255) not null,
+        primary key (id)
+    ) engine=InnoDB
+Hibernate:
+    create table permission_entity_seq (
+        next_val bigint
+    ) engine=InnoDB
+Hibernate:
+    insert into permission_entity_seq values ( 1 )
+Hibernate:
+    create table role_entity (
+        is_active bit not null,
+        id bigint not null,
+        description TEXT,
+        name varchar(255) not null,
+        primary key (id)
+    ) engine=InnoDB
+Hibernate:
+    create table role_entity_seq (
+        next_val bigint
+    ) engine=InnoDB
+Hibernate:
+    insert into role_entity_seq values ( 1 )
+Hibernate:
+    create table role_permission (
+        permission_id bigint not null,
+        role_id bigint not null,
+        primary key (permission_id, role_id)
+    ) engine=InnoDB
+Hibernate:
+    create table task_entity (
+        is_active bit not null,
+        completed_date datetime(6),
+        deadline datetime(6),
+        id bigint not null,
+        description TEXT,
+        priority varchar(255) not null,
+        status varchar(255) not null,
+        title varchar(255) not null,
+        primary key (id)
+    ) engine=InnoDB
+Hibernate:
+    create table task_entity_seq (
+        next_val bigint
+    ) engine=InnoDB
+Hibernate:
+    insert into task_entity_seq values ( 1 )
+Hibernate:
+    create table user_entity (
+        dob date,
+        is_active bit not null,
+        id bigint not null,
+        email varchar(255) not null,
+        first_name varchar(255) not null,
+        last_name varchar(255) not null,
+        password varchar(255) not null,
+        status varchar(255) not null,
+        token varchar(255),
+        username varchar(255) not null,
+        primary key (id)
+    ) engine=InnoDB
+Hibernate:
+    create table user_entity_seq (
+        next_val bigint
+    ) engine=InnoDB
+Hibernate:
+    insert into user_entity_seq values ( 1 )
+Hibernate:
+    create table user_group (
+        group_id bigint not null,
+        user_id bigint not null,
+        primary key (group_id, user_id)
+    ) engine=InnoDB
+Hibernate:
+    create table user_role (
+        role_id bigint not null,
+        user_id bigint not null,
+        primary key (role_id, user_id)
+    ) engine=InnoDB
+Hibernate:
+    create table user_task (
+        task_id bigint not null,
+        user_id bigint not null,
+        primary key (task_id, user_id)
+    ) engine=InnoDB
+Hibernate:
+    alter table permission_entity
+       add constraint UKie6sou3ikjjbtrtnofrr4ywmx unique (name)
+Hibernate:
+    alter table role_entity
+       add constraint UK2uqxlfg1dlwv0mtewrokr23ou unique (name)
+Hibernate:
+    alter table user_entity
+       add constraint UK4xad1enskw4j1t2866f7sodrx unique (email)
+Hibernate:
+    alter table user_entity
+       add constraint UKdn94k3s93vqlu1ufqus4t6y13 unique (token)
+Hibernate:
+    alter table user_entity
+       add constraint UK2jsk4eakd0rmvybo409wgwxuw unique (username)
+Hibernate:
+    alter table role_permission
+       add constraint FKky736fypjdg9w2fj1xv4m7yd1
+       foreign key (permission_id)
+       references permission_entity (id)
+Hibernate:
+    alter table role_permission
+       add constraint FKgu0wxwfjwk4n3n3dopx2auciy
+       foreign key (role_id)
+       references role_entity (id)
+Hibernate:
+    alter table user_group
+       add constraint FKigraic5s1w8kvvvppwltekao2
+       foreign key (group_id)
+       references group_entity (id)
+Hibernate:
+    alter table user_group
+       add constraint FKyiga1urvcdvpting421gc28m
+       foreign key (user_id)
+       references user_entity (id)
+Hibernate:
+    alter table user_role
+       add constraint FK66rggwh2ht8u9ig7hvam1jvai
+       foreign key (role_id)
+       references role_entity (id)
+Hibernate:
+    alter table user_role
+       add constraint FK79ltvrbu1ni2ad7w7i9vers1k
+       foreign key (user_id)
+       references user_entity (id)
+Hibernate:
+    alter table user_task
+       add constraint FK4xtx76k1al69nhud5m5ha0y4u
+       foreign key (user_id)
+       references user_entity (id)
+Hibernate:
+    alter table user_task
+       add constraint FKhxb4bpnad6jgqgki78208wpt5
+       foreign key (task_id)
+       references task_entity (id)

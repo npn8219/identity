@@ -1,18 +1,47 @@
 server:
   port: 8080
+  servlet:
+    context-path: /identity
 
 spring:
   datasource:
-    url: ${DBMS_CONNECTION:jdbc:mysql://localhost:3306/identity}
-    driverClassName: "com.mysql.cj.jdbc.Driver"
-    password: ${DBMS_PASSWORD:root}
-    username: ${DBMS_USERNAME:root}
+    url: "jdbc:mysql://localhost:3306/identity?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Ho_Chi_Minh"
+    username: root
+    password: admin@123
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+#      ddl-auto: update
+      ddl-auto: create
+#      ddl-auto: create-drop
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+#  sql:
+#    init:
+#      mode: never
+#      mode: always
+#      platform: mysql
+#      data-locations:
+#        - classpath:drop/drop_table.sql
+#        - classpath:init/step_1_init_table.sql
+#        - classpath:init/step_2_init_data.sql
+#        - classpath:init/step_3_add_field.sql
 
-jwt:
-  signerKey: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ij"
-  valid-duration: 3600 # in second
-  refreshable-duration: 36000 # in seconds
+
+logging:
+  level:
+    root: INFO
+    com.npn.users: DEBUG
+    org.hibernate.orm.connections.pooling: WARN
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(%-15t){faint} %clr(%-30.30c{1.}){cyan} %clr(:){faint} %m%n%wEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p %-15t %-30.30c{1.} : %m%n%wEx"
+  file:
+    name: logs/application.log
+  logback:
+    rolling policy:
+      max-file-size: 10MB
+      max-history: 7

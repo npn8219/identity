@@ -1,0 +1,4 @@
+DROP DATABASE IF EXISTS identity;
+CREATE DATABASE IF NOT EXISTS identity;
+
+USE identity;
