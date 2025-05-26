@@ -1,9 +1,9 @@
 package com.npn.users.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.npn.users.enums.TaskPriority;
+import com.npn.users.enums.TaskStatus;
 import com.npn.users.model.entity.base.AbstractEntity;
-import com.npn.users.model.enums.TaskPriority;
-import com.npn.users.model.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicInsert;

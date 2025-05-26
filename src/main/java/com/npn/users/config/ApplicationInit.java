@@ -1,7 +1,7 @@
 package com.npn.users.config;
 
+import com.npn.users.enums.UserStatus;
 import com.npn.users.model.entity.*;
-import com.npn.users.model.enums.UserStatus;
 import com.npn.users.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -187,7 +187,7 @@ public class ApplicationInit {
                 .lastName(lastName)
                 .email(email)
                 .status(UserStatus.ACTIVE.getValue())
-                .dob(LocalDate.of(dob.getYear(), dob.getMonth(), dob.getDayOfMonth()))
+                .dob(dob)
                 .build());
 
         Optional<UserEntity> userOptional = userRepository.findByUsername(username);
@@ -199,9 +199,9 @@ public class ApplicationInit {
         }
 
         userRepository.findByUsername(username).ifPresent(user -> {
-            log.error("User {}: {}", username, user.getLink());
+            log.warn("User {}: {}", username, user.getLink());
             if (user.getRoles() != null && !user.getRoles().isEmpty())
-                user.getRoles().forEach(role -> log.error("Role: {}", role.getName()));
+                user.getRoles().forEach(role -> log.warn("Role: {}", role.getName()));
         });
     }
 
@@ -209,21 +209,21 @@ public class ApplicationInit {
 
         List<RoleEntity> roles = roleRepository.findAll();
         if (!roles.isEmpty()) {
-            log.error("All role = ");
+            log.warn("All role = ");
             roles.forEach(role -> {
-                log.error("{} permissions = ", role.getName());
+                log.warn("{} permissions = ", role.getName());
                 if (!role.getPermissions().isEmpty())
-                    role.getPermissions().forEach(permission -> log.error(permission.toString()));
+                    role.getPermissions().forEach(permission -> log.warn(permission.toString()));
             });
         }
 
         List<UserEntity> users = userRepository.findAll();
         if (!users.isEmpty()) {
-            log.error("all user = ");
+            log.warn("all user = ");
             users.forEach(user -> {
                 if (user.getRoles() != null && !user.getRoles().isEmpty()) {
                     String rolesUser = user.getRoles().stream().map(RoleEntity::getName).collect(Collectors.joining(", "));
-                    log.error("{} has link = {} and roles = {}", user.getUsername(), user.getLink(), rolesUser);
+                    log.warn("{} has link = {} and roles = {}", user.getUsername(), user.getLink(), rolesUser);
                 }
             });
         }
