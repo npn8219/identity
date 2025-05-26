@@ -1,15 +1,19 @@
 package com.npn.users.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.npn.users.enums.UserStatus;
 import com.npn.users.model.entity.base.AbstractEntity;
-import com.npn.users.model.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -22,7 +26,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "user_entity")
-public class UserEntity extends AbstractEntity {
+public class UserEntity extends AbstractEntity implements UserDetails {
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -86,5 +90,30 @@ public class UserEntity extends AbstractEntity {
 
     public String getLink() {
         return "/users/" + getId();
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return UserDetails.super.isAccountNonExpired();
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return UserDetails.super.isAccountNonLocked();
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return UserDetails.super.isCredentialsNonExpired();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return UserDetails.super.isEnabled();
     }
 }

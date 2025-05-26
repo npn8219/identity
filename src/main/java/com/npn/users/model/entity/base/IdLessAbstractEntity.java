@@ -1,5 +1,6 @@
 package com.npn.users.model.entity.base;
 
+import com.npn.users.service.UserService;
 import jakarta.persistence.Column;
 import jakarta.persistence.Version;
 import org.springframework.data.annotation.CreatedBy;

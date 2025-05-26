@@ -1,4 +1,4 @@
-package com.npn.users.model.enums;
+package com.npn.users.enums;
 
 import lombok.Getter;
 
