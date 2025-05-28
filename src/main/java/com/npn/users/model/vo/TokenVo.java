@@ -4,7 +4,7 @@ public class TokenVo {
 
     private Long id;
 
-    private String alias;
+    private String username;
 
     private String token;
 

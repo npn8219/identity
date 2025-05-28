@@ -1,5 +1,6 @@
 package com.npn.users.service.impl;
 
+import com.npn.users.exception.CustomException;
 import com.npn.users.mapper.PermissionMapper;
 import com.npn.users.mapper.RoleMapper;
 import com.npn.users.model.dto.CreatePermissionDto;
@@ -46,18 +47,12 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional
     @Override
     public void updateRoles(Long id, UpdateRolesPermissionDto dto) {
-        PermissionEntity permissionEntity = permissionRepository.findById(id)
-                .orElseThrow();
+        PermissionEntity permissionEntity = findPermission(id);
 
         if (Objects.nonNull(dto.roles())) {
-            permissionEntity.setRoles(
-                    dto.roles()
-                            .stream()
-                            .map(pid -> roleRepository.findById(pid)
-                                    .orElseThrow()
-                            )
-                            .collect(Collectors.toSet())
-            );
+            permissionEntity.setRoles(dto.roles().stream()
+                    .map(pid -> roleRepository.findById(pid).orElseThrow(CustomException::roleNotFound))
+                    .collect(Collectors.toSet()));
             permissionRepository.save(permissionEntity);
         }
     }
@@ -65,16 +60,14 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional
     @Override
     public void update(Long id, UpdatePermissionDto dto) {
-        PermissionEntity permissionEntity = permissionRepository.findById(id)
-                .orElseThrow();
+        PermissionEntity permissionEntity = findPermission(id);
         permissionMapper.dtoToEntity(dto, permissionEntity);
         permissionRepository.save(permissionEntity);
     }
 
     @Override
     public PermissionEntityVo query(Long id) {
-        PermissionEntity permissionEntity = permissionRepository.findById(id)
-                .orElseThrow();
+        PermissionEntity permissionEntity = findPermission(id);
         PermissionEntityVo vo = permissionMapper.entityToVo(permissionEntity);
         setRoles(vo, permissionEntity);
         return vo;
@@ -94,27 +87,27 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional
     @Override
     public void delete(Long id) {
-        PermissionEntity permissionEntity = permissionRepository.findById(id)
-                .orElseThrow();
-        permissionEntity.getRoles()
-                .forEach(roleEntity -> removePermissions(permissionEntity, roleEntity));
+        PermissionEntity permissionEntity = findPermission(id);
+        permissionEntity.getRoles().forEach(roleEntity -> removePermissions(permissionEntity, roleEntity));
         permissionRepository.delete(permissionEntity);
     }
 
-    private void setRoles(PermissionEntityVo vo, PermissionEntity permissionEntity) {
-        vo.setRoles(
-                permissionEntity.getRoles()
-                        .stream()
-                        .map(roleMapper::entityToVo)
-                        .collect(Collectors.toSet())
+    private void setRoles(PermissionEntityVo vo, PermissionEntity permission) {
+        vo.setRoles(permission.getRoles().stream()
+                .map(roleMapper::entityToVo)
+                .collect(Collectors.toSet())
         );
     }
 
     private void removePermissions(PermissionEntity permission, RoleEntity role) {
-        if (role.getName().equals("ADMIN"))
-            return;
+        if (role.getName().equals("ADMIN")) return;
         role.getPermissions().remove(permission);
         roleRepository.save(role);
         permissionRepository.delete(permission);
+    }
+
+    private PermissionEntity findPermission(Long id) {
+        return permissionRepository.findById(id)
+                .orElseThrow(CustomException::permissionNotFound);
     }
 }

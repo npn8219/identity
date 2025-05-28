@@ -1,11 +1,13 @@
 package com.npn.users.service.impl;
 
+import com.npn.users.exception.CustomException;
 import com.npn.users.mapper.PermissionMapper;
 import com.npn.users.mapper.RoleMapper;
 import com.npn.users.model.dto.AssignPermissionsDto;
 import com.npn.users.model.dto.CreateRoleDto;
 import com.npn.users.model.dto.UpdatePermissionsRoleDto;
 import com.npn.users.model.dto.UpdateRoleDto;
+import com.npn.users.model.entity.PermissionEntity;
 import com.npn.users.model.entity.RoleEntity;
 import com.npn.users.model.vo.RoleEntityVo;
 import com.npn.users.model.vo.RolePermissionsVo;
@@ -39,47 +41,33 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     @Override
     public RoleEntity create(CreateRoleDto dto) {
-        log.info("dto: {}", dto);
+        checkExistedRoleName(dto.name());
         RoleEntity roleEntity = new RoleEntity();
         roleMapper.dtoToEntity(dto, roleEntity);
-        var roleSaved = roleRepository.save(roleEntity);
-        log.info("roleSaved: {}", roleSaved.getId());
-        roleRepository.findAll().forEach(role -> log.info("role ID =  {}, role name = {}", role.getId(), role.getName()));
-        log.info("roleSaved: {}", roleRepository.findById(roleSaved.getId()));
-        return roleSaved;
+        return roleRepository.save(roleEntity);
     }
 
     @Transactional
     @Override
     public void addPermissions(Long id, AssignPermissionsDto dto) {
-        if (CollectionUtils.isEmpty(dto.ids())) {
+        if (CollectionUtils.isEmpty(dto.ids()))
             return;
-        }
 
-        RoleEntity roleEntity = roleRepository.findById(id)
-                .orElseThrow();
-        roleEntity.getPermissions().addAll(
-                dto.ids()
-                        .stream()
-                        .map(pid -> permissionRepository.findById(pid)
-                                .orElseThrow()
-                        )
-                        .toList()
-        );
+        RoleEntity roleEntity = findRole(id);
+        var permissionsToAdd = dto.ids().stream()
+                .map(this::findPermission)
+                .toList();
+        roleEntity.getPermissions().addAll(permissionsToAdd);
     }
 
     @Transactional
     @Override
     public void removePermissions(Long id, AssignPermissionsDto dto) {
-        RoleEntity roleEntity = roleRepository.findById(id)
-                .orElseThrow();
+        RoleEntity roleEntity = findRole(id);
 
         if (Objects.nonNull(dto.ids())) {
-            dto.ids()
-                    .stream()
-                    .map(pid -> permissionRepository.findById(pid)
-                            .orElseThrow()
-                    )
+            dto.ids().stream()
+                    .map(this::findPermission)
                     .forEach(roleEntity.getPermissions()::remove);
         }
     }
@@ -87,16 +75,12 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     @Override
     public void updatePermissions(Long id, UpdatePermissionsRoleDto dto) {
-        RoleEntity roleEntity = roleRepository.findById(id)
-                .orElseThrow();
+        RoleEntity roleEntity = findRole(id);
 
         if (Objects.nonNull(dto.permissions())) {
             roleEntity.setPermissions(
-                    dto.permissions()
-                            .stream()
-                            .map(pid -> permissionRepository.findById(pid)
-                                    .orElseThrow()
-                            )
+                    dto.permissions().stream()
+                            .map(this::findPermission)
                             .collect(Collectors.toSet())
             );
         }
@@ -105,31 +89,26 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     @Override
     public void update(Long id, UpdateRoleDto dto) {
-        RoleEntity roleEntity = roleRepository.findById(id)
-                .orElseThrow();
+        RoleEntity roleEntity = findRole(id);
+        checkExistedRoleName(dto.name(), id);
         roleMapper.dtoToEntity(dto, roleEntity);
     }
 
     @Override
     public RolePermissionsVo getPermissions(Long id) {
-        RoleEntity roleEntity = roleRepository.findById(id)
-                .orElseThrow();
+        RoleEntity roleEntity = findRole(id);
 
         RolePermissionsVo vo = new RolePermissionsVo();
         vo.setRole(roleMapper.entityToVo(roleEntity));
-        vo.setPermissions(
-                roleEntity.getPermissions()
-                        .stream()
-                        .map(permissionMapper::entityToVo)
-                        .toList()
-        );
+        if (!roleEntity.getPermissions().isEmpty()) {
+            vo.setPermissions(roleEntity.getPermissions().stream().map(permissionMapper::entityToVo).toList());
+        }
         return vo;
     }
 
     @Override
     public RoleEntityVo query(Long id) {
-        RoleEntity roleEntity = roleRepository.findById(id)
-                .orElseThrow();
+        RoleEntity roleEntity = findRole(id);
 
         RoleEntityVo vo = roleMapper.entityToVo(roleEntity);
         setPermissions(vo, roleEntity);
@@ -139,24 +118,46 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<RoleEntityVo> queryAll() {
         return roleRepository.findAll().stream()
-                .map(roleMapper::entityToVo)
+                .map(role -> {
+                    RoleEntityVo vo = roleMapper.entityToVo(role);
+                    setPermissions(vo, role);
+                    return vo;
+                })
                 .collect(Collectors.toList());
     }
 
     @Transactional
     @Override
     public void delete(Long id) {
-        RoleEntity roleEntity = roleRepository.findById(id)
-                .orElseThrow();
+        RoleEntity roleEntity = findRole(id);
         roleRepository.delete(roleEntity);
     }
 
     private void setPermissions(RoleEntityVo vo, RoleEntity roleEntity) {
-        vo.setPermissions(
-                roleEntity.getPermissions()
-                        .stream()
-                        .map(permissionMapper::entityToVo)
-                        .collect(Collectors.toSet())
+        vo.setPermissions(roleEntity.getPermissions().stream()
+                .map(permissionMapper::entityToVo)
+                .collect(Collectors.toSet())
         );
     }
+
+    private PermissionEntity findPermission(Long id) {
+        return permissionRepository.findById(id)
+                .orElseThrow(CustomException::permissionNotFound);
+    }
+
+    private RoleEntity findRole(Long id) {
+        return roleRepository.findById(id)
+                .orElseThrow(CustomException::roleNotFound);
+    }
+
+    private void checkExistedRoleName(String name) {
+        if (roleRepository.findByName(name).isPresent())
+            throw CustomException.roleAlreadyExists();
+    }
+
+    private void checkExistedRoleName(String name, Long id) {
+        if (roleRepository.findByNameAndIdNot(name, id).isPresent())
+            throw CustomException.roleAlreadyExists();
+    }
+
 }
