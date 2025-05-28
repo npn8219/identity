@@ -10,15 +10,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.auditing.DateTimeProvider;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.temporal.TemporalAccessor;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Configuration
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@EnableJpaAuditing(dateTimeProviderRef = "dateTimeProvider")
 @Slf4j
 public class ApplicationInit {
 
@@ -95,79 +100,59 @@ public class ApplicationInit {
         );
 
         permissionRepository.saveAll(permissions);
-        log.info("Đã tạo {} permissions", permissions.size());
-
     }
 
     @Transactional
     protected void createRoles() {
 
-        // Tạo các role
+        List<String> allPermissions = Collections.emptyList();
+        List<String> userPermission = Arrays.asList(
+                "view_user", "view_guest", "view_admin",
+                "create_guest", "update_guest", "update_user",
+                "view_role", "view_permission",
+                "view_group", "add_user_to_group", "remove_user_from_group",
+                "create_task", "view_task", "update_task");
+        List<String> guestPermission = Arrays.asList(
+                "view_guest", "view_task", "update_task");
+
+        createRole("ADMIN", "Quản trị viên", allPermissions);
+        createRole("USER", "Người dùng", userPermission);
+        createRole("GUEST", "Khách", guestPermission);
+    }
+
+    protected void createRole(String name, String description, List<String> permissions) {
+
         roleRepository.save(RoleEntity.builder()
-                .name("admin")
-                .description("Quản trị viên với toàn quyền trong hệ thống")
+                .name(name)
+                .description(description)
                 .build()
         );
 
-        roleRepository.save(RoleEntity.builder()
-                .name("user")
-                .description("Người dùng thông thường với các quyền hạn chế")
-                .build()
-        );
-
-        roleRepository.save(RoleEntity.builder()
-                .name("guest")
-                .description("Khách với quyền hạn tối thiểu")
-                .build()
-        );
-
-        RoleEntity adminRole = roleRepository.findByName("ADMIN").orElse(null);
-        if (adminRole != null) {
-            List<PermissionEntity> adminPermissions = permissionRepository.findAll();
-            adminRole.setPermissions(new HashSet<>(adminPermissions));
-            roleRepository.save(adminRole);
-        }
-
-        RoleEntity userRole = roleRepository.findByName("USER").orElse(null);
-        if (userRole != null) {
-            List<PermissionEntity> userPermissions = new ArrayList<>(
-                    permissionRepository.findAllByNameIn(Arrays.asList(
-                            "view_user", "view_guest", "view_admin",
-                            "create_guest", "update_guest", "update_user",
-                            "view_role", "view_permission",
-                            "view_group", "add_user_to_group", "remove_user_from_group",
-                            "create_task", "view_task", "update_task"
-                    ))
-            );
-            userRole.setPermissions(new HashSet<>(userPermissions));
-            roleRepository.save(userRole);
-        }
-
-        RoleEntity guestRole = roleRepository.findByName("GUEST").orElse(null);
-        if (guestRole != null) {
-            List<PermissionEntity> guestPermissions = new ArrayList<>(
-                    permissionRepository.findAllByNameIn(Arrays.asList(
-                            "view_guest", "view_task", "update_task"
-                    ))
-            );
-            guestRole.setPermissions(new HashSet<>(guestPermissions));
-            roleRepository.save(guestRole);
-        }
+        roleRepository.findByName(name).ifPresent(role -> {
+            if (permissions.isEmpty()) {
+                var permissionEntities = permissionRepository.findAll();
+                role.setPermissions(new HashSet<>(permissionEntities));
+            } else {
+                var permissionEntities = permissionRepository.findAllByNameIn(permissions);
+                role.setPermissions(new HashSet<>(permissionEntities));
+            }
+            roleRepository.save(role);
+        });
     }
 
     @Transactional
     protected void createUsers() {
-        createSampleUser(
+        createUser(
                 "admin","admin123",
                 "Admin","System",
                 LocalDate.of(1990,1,1),
                 "admin@system.com", List.of("ADMIN","USER"));
-        createSampleUser(
+        createUser(
                 "user_test","user123",
                 "Normal","User",
                 LocalDate.of(1995,6,15),
                 "user@system.com",List.of("USER"));
-        createSampleUser(
+        createUser(
                 "guest_test","guest123",
                 "Guest", "User",
                 LocalDate.of(2000,12,31),
@@ -175,7 +160,7 @@ public class ApplicationInit {
     }
 
     @Transactional
-    protected void createSampleUser(
+    protected void createUser(
             String username, String password,
             String firstName, String lastName,
             LocalDate dob, String email, List<String> rolesUser
@@ -190,42 +175,27 @@ public class ApplicationInit {
                 .dob(dob)
                 .build());
 
-        Optional<UserEntity> userOptional = userRepository.findByUsername(username);
-        if (userOptional.isPresent()) {
-            UserEntity userSaved = userOptional.get();
+        userRepository.findByUsername(username).ifPresent(userSaved -> {
             List<RoleEntity> roles = new ArrayList<>(roleRepository.findAllByNameIn(rolesUser));
             userSaved.setRoles(new HashSet<>(roles));
             userRepository.save(userSaved);
-        }
-
-        userRepository.findByUsername(username).ifPresent(user -> {
-            log.warn("User {}: {}", username, user.getLink());
-            if (user.getRoles() != null && !user.getRoles().isEmpty())
-                user.getRoles().forEach(role -> log.warn("Role: {}", role.getName()));
         });
     }
 
     private void showData() {
-
-        List<RoleEntity> roles = roleRepository.findAll();
-        if (!roles.isEmpty()) {
-            log.warn("All role = ");
-            roles.forEach(role -> {
-                log.warn("{} permissions = ", role.getName());
-                if (!role.getPermissions().isEmpty())
-                    role.getPermissions().forEach(permission -> log.warn(permission.toString()));
+        userRepository.findAll().forEach(user -> {
+            log.error("User {} has link = {}", user.getUsername(), user.getLink());
+            log.info("User {} has ", user.getUsername());
+            user.getRoles().forEach(role -> {
+                log.warn("role {}, has ", role.getName());
+                role.getPermissions().forEach(permission -> {
+                    log.warn("permission name = {}", permission.getName());
+                });
             });
-        }
-
-        List<UserEntity> users = userRepository.findAll();
-        if (!users.isEmpty()) {
-            log.warn("all user = ");
-            users.forEach(user -> {
-                if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-                    String rolesUser = user.getRoles().stream().map(RoleEntity::getName).collect(Collectors.joining(", "));
-                    log.warn("{} has link = {} and roles = {}", user.getUsername(), user.getLink(), rolesUser);
-                }
-            });
-        }
+        });
     }
+
+
+
+
 }

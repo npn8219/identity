@@ -1,11 +1,12 @@
 package com.npn.users.service;
 
 import com.npn.users.model.dto.*;
+import com.npn.users.model.entity.UserEntity;
 import com.npn.users.model.vo.TokenVo;
 import com.npn.users.model.vo.UserEntityVo;
 import com.npn.users.model.vo.UserRolesPermissionsVo;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public interface UserService {
@@ -29,11 +30,8 @@ public interface UserService {
 
     //User Information Retrieval
     UserEntityVo getLoginInfo();
-    UserEntityVo queryDetails(String id);
+    UserEntityVo queryDetails(Long id);
     UserEntityVo query(Long id);
 
-    //User Management (CRUD)
     void delete(Long id);
-    long count();
-
 }

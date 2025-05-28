@@ -21,9 +21,6 @@ public abstract class AbstractEntity extends IdLessAbstractEntity {
     @Column(nullable = false)
     private Long id;
 
-    @Column(nullable = false)
-    private boolean isActive;
-
     @Override
     public final boolean equals(Object o) {
         if (this == o) {
